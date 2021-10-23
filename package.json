@@ -1,0 +1,22 @@
+{
+  "name": "fe-mail-server",
+  "version": "1.0.0",
+  "description": "Sineware Cloud  FE Mail Server",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sineware/fe-mail-server.git"
+  },
+  "author": "Seshan Ravikumar",
+  "license": "AGPL-3.0",
+  "bugs": {
+    "url": "https://github.com/Sineware/fe-mail-server/issues"
+  },
+  "homepage": "https://github.com/Sineware/fe-mail-server#readme",
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
