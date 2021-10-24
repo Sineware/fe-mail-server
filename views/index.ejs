@@ -61,7 +61,7 @@
                 </div>
                 <hr />
                 <% if(!emails[selectedEmail].html) { %>
-                    <div><%= emails[selectedEmail].text %></div>
+                    <div><%= emails[selectedEmail].textAsHtml %></div>
                 <% } else { %>
                     <div><%- emails[selectedEmail].html %></div>
                 <% } %>
