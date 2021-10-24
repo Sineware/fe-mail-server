@@ -28,7 +28,7 @@ let authMW = basicAuth({
     challenge: true,
 });
 
-app.use(Express.json());
+app.use(Express.json({ limit: "50mb" }));
 app.use(Express.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
 
