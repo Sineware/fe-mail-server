@@ -60,7 +60,11 @@
                             <h4>Subject: <%= emails[selectedEmail].subject %></h4>
                 </div>
                 <hr />
-                <div><%- emails[selectedEmail].html %></div>
+                <% if(!emails[selectedEmail].html) { %>
+                    <div><%= emails[selectedEmail].text %></div>
+                <% } else { %>
+                    <div><%- emails[selectedEmail].html %></div>
+                <% } %>
                 <hr />
                 <p>
                     <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#rawEmailCollapse" aria-expanded="false" aria-controls="rawEmailCollapse">
