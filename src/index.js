@@ -36,7 +36,7 @@ app.set('view engine', 'ejs');
 app.get("/", authMW, (req, res) => {
     res.render('index', {emails: db.data.emails, selectedEmail: false});
 });
-app.get("/email/:id", authMW, (req, res) => {
+app.get(["/email/:id", "/mail/email/:id"], authMW, (req, res) => {
     //console.log(req.params.id)
     res.render('index', {emails: db.data.emails, selectedEmail: req.params.id});
 });
