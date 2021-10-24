@@ -23,20 +23,20 @@ await db.write();
 const app = Express();
 const port = 3002;
 
-app.use(basicAuth({
+let authMW = basicAuth({
     users: { 'admin': process.env.PASSWORD },
     challenge: true,
-}));
+});
 
 app.use(Express.json());
 app.use(Express.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
 
 
-app.get("/", (req, res) => {
+app.get("/", authMW, (req, res) => {
     res.render('index', {emails: db.data.emails, selectedEmail: false});
 });
-app.get("/email/:id", (req, res) => {
+app.get("/email/:id", authMW, (req, res) => {
     //console.log(req.params.id)
     res.render('index', {emails: db.data.emails, selectedEmail: req.params.id});
 });
