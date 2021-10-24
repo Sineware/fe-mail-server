@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sineware FE Mail Server</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Sineware FE Mail Server</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            </div>
+        </div>
+    </nav>
+    <div class="row">
+        <div class="col-md-3">
+            <ul class="list-group">
+                <% for(let i = emails.length-1; i >= 0; i--) { %>
+                    <li class="list-group-item">
+                        <a href="/email/<%= i %>">
+                            <b><%= emails[i].from.text %></b>
+                            <p><%= new Date(emails[i].date).toString() %></p>
+                            <p><%= emails[i].subject %></p>
+                        </a>
+                    </li>
+                <% } %>
+            </ul>
+        </div>
+        <div class="col">
+            <% if(!selectedEmail) { %>
+                <b>Select an E-Mail!</b>
+            <% } else {%>
+                <%- emails[selectedEmail].textAsHtml %>
+            <% }%>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+</body>
+</html>
