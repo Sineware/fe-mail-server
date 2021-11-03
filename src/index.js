@@ -1,12 +1,10 @@
 import Express from "express";
-
 import basicAuth from "express-basic-auth";
-
 import { join, dirname } from 'path';
 import { Low, JSONFile } from 'lowdb';
 import { fileURLToPath } from 'url';
-
 import dotenv from 'dotenv';
+import got from "got";
 dotenv.config();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,9 +21,25 @@ await db.write();
 const app = Express();
 const port = 3002;
 
+/**
+ * Authorizer for express-basic-auth (use authorizeAsync: true), using username/password
+ * @param {string} username
+ * @param {string} password
+ * @param {function} cb
+ * @returns {Promise<void>}
+ */
+async function userPassAuthorizer(username, password, cb) {
+    const {body} = await got.post(process.env.AUTHSERVER_URL + '/login', {
+        json: { username, password },
+        responseType: 'json'
+    });
+    cb(null, body.success === true);
+}
+
 let authMW = basicAuth({
-    users: { 'admin': process.env.PASSWORD },
-    challenge: true,
+    authorizer: userPassAuthorizer,
+    authorizeAsync: true,
+    challenge: true
 });
 
 app.use(Express.json({ limit: "50mb" }));
@@ -41,10 +55,10 @@ app.get(["/email/:id", "/mail/email/:id"], authMW, (req, res) => {
     res.render('index', {emails: db.data.emails, selectedEmail: req.params.id});
 });
 
-app.post("/api/v1/sink", (req, res) => {
+app.post("/api/v1/sink", async (req, res) => {
     console.log(req.body);
     db.data.emails.push(req.body);
-    db.write();
+    await db.write();
     res.send({"success": true, "service": "sineware-fe-mail-server"});
 });
 
