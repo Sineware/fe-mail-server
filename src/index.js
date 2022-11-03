@@ -33,7 +33,8 @@ async function userPassAuthorizer(username, password, cb) {
         json: { username, password },
         responseType: 'json'
     });
-    cb(null, body.success === true);
+    console.log(body)
+    cb(null, body.status === true);
 }
 
 let authMW = basicAuth({
