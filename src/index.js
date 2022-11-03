@@ -47,16 +47,17 @@ app.use(Express.json({ limit: "50mb" }));
 app.use(Express.urlencoded({extended: true}));
 app.set('view engine', 'ejs');
 
+const PREFIX = process.env.PREFIX || '';
 
-app.get("/", authMW, (req, res) => {
+app.get(PREFIX + "/", authMW, (req, res) => {
     res.render('index', {emails: db.data.emails, selectedEmail: false});
 });
-app.get(["/email/:id", "/mail/email/:id"], authMW, (req, res) => {
+app.get(PREFIX + "/email/:id", authMW, (req, res) => {
     //console.log(req.params.id)
     res.render('index', {emails: db.data.emails, selectedEmail: req.params.id});
 });
 
-app.post("/api/v1/sink", async (req, res) => {
+app.post(PREFIX + "/api/v1/sink", async (req, res) => {
     console.log(req.body);
     db.data.emails.push(req.body);
     await db.write();
