@@ -40,6 +40,7 @@ async function userPassAuthorizer(username, password, cb) {
 let authMW = basicAuth({
     authorizer: userPassAuthorizer,
     authorizeAsync: true,
+    realm: "femailserver",
     challenge: true
 });
 
