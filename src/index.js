@@ -40,8 +40,14 @@ async function main() {
 
     app.use(Express.json({ limit: "50mb" }));
     app.use(Express.urlencoded({extended: true}));
+    app.set('view engine', 'ejs');
 
-    app.use(auth({
+
+    const PREFIX = process.env.PREFIX || '';
+    const router = Express.Router();
+    app.use(PREFIX, router);
+
+    router.use(auth({
         authRequired: false,
         authorizationParams: {
             response_type: 'id_token',
@@ -51,24 +57,19 @@ async function main() {
           
     }))
 
-    app.set('view engine', 'ejs');
-
-    const PREFIX = process.env.PREFIX || '';
-
-
     const employeeClaim = claimCheck((req, claims) => {
         console.log(claims)
         return claims.realm_access?.roles?.includes("employee");
     })
 
-    app.get(PREFIX + "/", employeeClaim, (req, res) => {
+    router.get("/", employeeClaim, (req, res) => {
         res.render('index', {emails: db.data.emails, selectedEmail: false});
     });
-    app.get(PREFIX + "/email/:id", employeeClaim, (req, res) => {
+    router.get("/email/:id", employeeClaim, (req, res) => {
         res.render('index', {emails: db.data.emails, selectedEmail: req.params.id});
     });
 
-    app.post(PREFIX + "/api/v1/sink", async (req, res) => {
+    router.post("/api/v1/sink", async (req, res) => {
         console.log(req.body);
         db.data.emails.push(req.body);
         await db.write();
