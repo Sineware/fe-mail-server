@@ -1,7 +1,7 @@
 {
   "name": "fe-mail-server",
   "version": "1.0.0",
-  "description": "Sineware Cloud  FE Mail Server",
+  "description": "Sineware Cloud FE Mail Server",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

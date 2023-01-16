@@ -20,7 +20,7 @@ require('dotenv').config()
 const Express = require("express");
 const { join } = require('path');
 const got = require("got");
-const { auth, requiresAuth, claimCheck } = require("express-openid-connect");
+const { auth, claimCheck } = require("express-openid-connect");
 
 console.log(__dirname)
 async function main() {
@@ -57,23 +57,109 @@ async function main() {
           
     }))
 
+    /* -------------------------------------- */
     const employeeClaim = claimCheck((req, claims) => {
         console.log(claims)
         return claims.realm_access?.roles?.includes("employee");
     })
 
+
+
+    /* -------------------------------------- */
     router.get("/", employeeClaim, (req, res) => {
-        res.render('index', {emails: db.data.emails, selectedEmail: false});
+        res.render('index', {emails: db.data.emails, selectedEmail: false, reply: false});
     });
     router.get("/email/:id", employeeClaim, (req, res) => {
-        res.render('index', {emails: db.data.emails, selectedEmail: req.params.id});
+        res.render('index', {emails: db.data.emails, selectedEmail: req.params.id, reply: false});
+    });
+    router.get("/email/:id/reply", employeeClaim, (req, res) => {
+        
+        res.render('index', {emails: db.data.emails, selectedEmail: req.params.id, reply: true});
     });
 
+    /* -------------------------------------- */
     router.post("/api/v1/sink", async (req, res) => {
         console.log(req.body);
         db.data.emails.push(req.body);
         await db.write();
         res.send({"success": true, "service": "sineware-fe-mail-server"});
+    });
+
+    /* -------------------------------------- */
+    const sendGridReplyFunction = async (content, subject, from, to, cc) => {
+        const req = {
+            "personalizations":[
+                    {
+                        to: to.map((email) => {
+                            return {
+                                email: email
+                            }
+                        }),
+                        /*cc: cc.map((email) => {
+                            return {
+                                email: email
+                            }
+                        }),*/
+                        "subject": subject
+                    }
+                ],
+            "content": [
+                {"type": "text/plain", "value": content}
+            ],
+            "from":{
+                "email": from,
+                "name":"Sineware"},
+            "reply_to":{
+                "email": from,
+                "name":"Sineware"
+            }
+        }
+        console.log(req)
+        const response = await got.post("https://api.sendgrid.com/v3/mail/send", {
+            headers: {
+                "Authorization": `Bearer ${process.env.SENDGRID_API_KEY}`,
+            },
+            json: req,
+            responseType: "json",
+        });
+        console.log(response.body);
+        return response;
+    }
+    router.post("/compose", employeeClaim, async (req, res) => {
+        console.log(req.body);
+        const { content, subject, from, to, cc } = req.body;
+        db.data.emails.push({
+            from: {
+                text: from
+            },
+            to: {
+                text: to
+            },
+            cc: {
+                text: cc
+            },
+            html: content,
+            date: new Date().toISOString(),
+            subject: subject,
+            isFEMailReply: true,
+        });
+        await db.write();
+        if (content) {
+            try {
+                let emailres = await sendGridReplyFunction(content, subject, from, to.split(","), cc.split(","));
+                if(emailres.statusCode !== 202) {
+                    res.send({success: false, error: res.body, statusCode: res.statusCode});
+                } else {
+                    res.send({success: true});
+                    return;
+                }
+            } catch (e) {
+                console.error(e);
+                res.send({success: false, error: e});
+                return;
+            }
+        }
+        res.send({success: false, error: "No content"});
     });
 
     app.listen(port, () => {
