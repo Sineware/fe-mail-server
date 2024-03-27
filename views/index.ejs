@@ -42,7 +42,7 @@
                                 To: <%= emails[i].to.text %> <br />
                                 <%= new Date(emails[i].date).toLocaleString() %>
                             </p>
-                            <p>Subject:<strong> <%= emails[i].subject %></strong></p>
+                            <p>From: <%= emails[i].from.text %><br />Subject:<strong> <%= emails[i].subject %></strong></p>
                         </a>
                     </li>
                 <% } %>
