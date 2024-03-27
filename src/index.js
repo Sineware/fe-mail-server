@@ -1,6 +1,6 @@
 /*
     Sineware FE Mail Server (Internal Service)
-    Copyright (C) 2022 Seshan Ravikumar
+    Copyright (C) 2024 Seshan Ravikumar
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
@@ -33,6 +33,20 @@ async function main() {
     await db.read();
 
     db.data = db.data || { emails: [] }
+
+    console.log("Patching email store...")
+    db.data.emails = db.data.emails.map((email) => {
+        if (!email.to?.text) {
+            email.to = email.to || {};
+            email.to.text = "INVALID - NO TO";
+        }
+        if (!email.from?.text) {
+            email.from = email.from || {};
+            email.from.text = "INVALID - NO FROM";
+        }
+        return email;
+    });
+
     await db.write();
 
     const app = Express();
@@ -61,9 +75,7 @@ async function main() {
     const employeeClaim = claimCheck((req, claims) => {
         console.log(claims)
         return claims.realm_access?.roles?.includes("employee");
-    })
-
-
+    });
 
     /* -------------------------------------- */
     router.get("/", employeeClaim, (req, res) => {
@@ -75,6 +87,38 @@ async function main() {
     router.get("/email/:id/reply", employeeClaim, (req, res) => {
         
         res.render('index', {emails: db.data.emails, selectedEmail: req.params.id, reply: true});
+    });
+    router.get("/compose", employeeClaim, (req, res) => {
+        // todo: hack
+        res.render('index', {emails: [
+            {
+                "from": {
+                  "text": "",
+                  "value": [
+                    {"address": ""}
+                  ]
+                },
+                "to": {
+                  "text": ""
+                },
+                "cc": {
+                  "text": ""
+                },
+                "html": "",
+                "date": "",
+                "subject": "",
+                "isFEMailReply": false
+              }
+        ], selectedEmail: "0", reply: true});
+    });
+
+    router.get("/email/:id/raw", employeeClaim, (req, res) => {
+        // wrapped in html header 
+        if(!db.data.emails[req.params.id].html) {
+            res.send(`<html><head></head><body><pre>${db.data.emails[req.params.id].textAsHtml}</pre></body></html>`);
+        } else {
+            res.send(`<html><head></head><body>${db.data.emails[req.params.id].html}</body></html>`);
+        }
     });
 
     /* -------------------------------------- */

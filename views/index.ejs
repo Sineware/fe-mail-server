@@ -32,7 +32,7 @@
         </div>
     </nav>
     <div class="row">
-        <div class="col-md-3">
+        <div class="col-md-3" style="max-height: 80vh; overflow-y: auto;">
             <ul class="list-group" style="border-right: 1px solid lightgray; min-height: 80vh;">
                 <% for(let i = emails.length-1; i >= 0; i--) { %>
                     <li class="list-group-item" <% if (selectedEmail == i && !emails[i].isFEMailReply) { %>style="background-color: #bfbfbf;"<% } else if (emails[i].isFEMailReply && selectedEmail == i) { %> style="background-color: #ffb3b3;" <% } else if (emails[i].isFEMailReply) { %> style="background-color: #fff5f5;" <% } %>>
@@ -42,7 +42,7 @@
                                 To: <%= emails[i].to.text %> <br />
                                 <%= new Date(emails[i].date).toLocaleString() %>
                             </p>
-                            <p>Subject: <%= emails[i].subject %></p>
+                            <p>Subject:<strong> <%= emails[i].subject %></strong></p>
                         </a>
                     </li>
                 <% } %>
@@ -59,14 +59,11 @@
                                 To: <%= emails[selectedEmail].to.text %> <br />
                                 <%= new Date(emails[selectedEmail].date).toLocaleString() %>
                             </p>
-                            <h4>Subject: <%= emails[selectedEmail].subject %></h4>
+                            <h4><%= emails[selectedEmail].subject %></h4>
                 </div>
                 <hr />
-                <% if(!emails[selectedEmail].html) { %>
-                    <div><%- emails[selectedEmail].textAsHtml %></div>
-                <% } else { %>
-                    <div><%- emails[selectedEmail].html %></div>
-                <% } %>
+                <iframe src="/mail/email/<%= selectedEmail %>/raw" frameborder="0" scrolling="yes" allowfullscreen
+                    style=" width: 100%; height: 600px; border: none;"></iframe>
                 <hr />
                 <p>
                     <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#rawEmailCollapse" aria-expanded="false" aria-controls="rawEmailCollapse">
@@ -90,7 +87,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="subject" class="form-label">Subject</label>
-                            <input type="text" class="form-control" id="subject" name="subject" value="RE: <%= emails[selectedEmail].subject %>">
+                            <input type="text" class="form-control" id="subject" name="subject" value="Re: <%= emails[selectedEmail].subject %>">
                         </div>
                         <div class="mb-3">
                             <label for="content" class="form-label">Content</label>
@@ -112,7 +109,7 @@
             <svg class="bi" width="30" height="24"><use xlink:href="#bootstrap"></use></svg>
           </a>
           <span class="text-muted"></span>
-          <span class="text-muted">Sineware Cloud Services · © 2023 Seshan Ravikumar</span>
+          <span class="text-muted">Sineware Cloud Services · © 2024 Seshan Ravikumar</span>
         </div>
     
         <ul class="nav col-md-4 justify-content-end list-unstyled d-flex">
