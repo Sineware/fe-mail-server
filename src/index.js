@@ -134,7 +134,8 @@ const routeHandlers = {
         res.render('index', {
             emails: db.data.emails,
             selectedEmail: false,
-            reply: false
+            reply: false,
+            prefix: CONFIG.prefix
         });
     },
 
@@ -147,7 +148,8 @@ const routeHandlers = {
         res.render('index', {
             emails: db.data.emails,
             selectedEmail: req.params.id,
-            reply: false
+            reply: false,
+            prefix: CONFIG.prefix
         });
     },
 
@@ -160,7 +162,8 @@ const routeHandlers = {
         res.render('index', {
             emails: db.data.emails,
             selectedEmail: req.params.id,
-            reply: true
+            reply: true,
+            prefix: CONFIG.prefix
         });
     },
 
@@ -178,7 +181,8 @@ const routeHandlers = {
         res.render('index', {
             emails: [emptyEmail],
             selectedEmail: "0",
-            reply: true
+            reply: true,
+            prefix: CONFIG.prefix
         });
     },
 
