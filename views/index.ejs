@@ -4,14 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sineware FE Mail Server</title>
-    <link
-    rel="icon"
-    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📧</text></svg>"
-    />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .email-list {
-            max-height: 80vh;
+            max-height: 70vh;
             overflow-y: auto;
             border-right: 1px solid #dee2e6;
         }
@@ -48,9 +44,31 @@
             border-radius: 0.375rem;
         }
         
+        .search-container {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 100;
+            border-bottom: 1px solid #dee2e6;
+            padding: 15px;
+        }
+        
+        .pagination-container {
+            position: sticky;
+            bottom: 0;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            padding: 10px 15px;
+        }
+        
         .loading {
             opacity: 0.6;
             pointer-events: none;
+        }
+
+        .search-stats {
+            font-size: 0.875rem;
+            color: #6c757d;
         }
     </style>
 </head>
@@ -59,14 +77,14 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="<%- prefix %>/">
-                📧 Sineware FE Mail Server
+                📧 Sineware Mail
             </a>
             
             <div class="d-flex gap-2">
                 <button type="button" class="btn btn-outline-secondary btn-sm" onclick="refreshPage()">
                     🔄 Refresh
                 </button>
-                <a class="btn btn-success btn-sm" href="<%- prefix %>/compose">
+                <a class="btn btn-success btn-sm" href="<%- prefix %>/compose<%= search ? '?search=' + encodeURIComponent(search) : '' %>">
                     ✉️ Compose
                 </a>
             </div>
@@ -77,125 +95,234 @@
         <div class="row">
             <!-- Email List -->
             <div class="col-md-4 col-lg-3 p-0">
+                <!-- Search Bar -->
+                <div class="search-container">
+                    <form method="GET" action="<%- prefix %>/" class="d-flex gap-2">
+                        <input type="search" 
+                               class="form-control form-control-sm" 
+                               name="search" 
+                               placeholder="Search emails..." 
+                               value="<%= search %>"
+                               id="searchInput">
+                        <button type="submit" class="btn btn-primary btn-sm">🔍</button>
+                        <% if (search) { %>
+                            <a href="<%- prefix %>/" class="btn btn-outline-secondary btn-sm">✕</a>
+                        <% } %>
+                    </form>
+                    
+                    <div class="search-stats mt-2">
+                        <% if (search) { %>
+                            <strong><%= totalEmails %></strong> results for "<%= search %>"
+                        <% } else { %>
+                            <strong><%= totalEmails %></strong> total emails
+                        <% } %>
+                        <span class="text-muted">
+                            • Page <%= currentPage %> of <%= totalPages %>
+                        </span>
+                    </div>
+                </div>
+
                 <div class="email-list">
                     <div class="list-group list-group-flush">
                         <% if (emails.length === 0) { %>
                             <div class="list-group-item text-center text-muted py-4">
-                                <p class="mb-0">No emails found</p>
+                                <% if (search) { %>
+                                    <p class="mb-2">🔍 No emails found</p>
+                                    <small>Try a different search term</small>
+                                <% } else { %>
+                                    <p class="mb-0">📭 No emails found</p>
+                                <% } %>
                             </div>
                         <% } else { %>
-                            <% for(let i = emails.length - 1; i >= 0; i--) { %>
-                                <a href="<%- prefix %>/email/<%= i %>/" 
-                                   class="list-group-item list-group-item-action email-item <%= selectedEmail == i ? 'selected' : '' %> <%= emails[i].isFEMailReply ? 'sent' : '' %>"
-                                   data-email-id="<%= i %>">
+                            <% emails.forEach((email, index) => { %>
+                                <% 
+                                // Calculate the actual email ID for linking
+                                const actualIndex = db.data ? db.data.emails.findIndex(e => 
+                                    e.date === email.date && 
+                                    e.subject === email.subject && 
+                                    e.from.text === email.from.text
+                                ) : index;
+                                %>
+                                <a href="<%- prefix %>/email/<%= actualIndex %>/<%= search || currentPage > 1 ? '?' + new URLSearchParams({search, page: currentPage}).toString() : '' %>" 
+                                   class="list-group-item list-group-item-action email-item <%= selectedEmail == actualIndex ? 'selected' : '' %> <%= email.isFEMailReply ? 'sent' : '' %>"
+                                   data-email-id="<%= actualIndex %>">
                                     
                                     <div class="d-flex justify-content-between align-items-start mb-1">
                                         <h6 class="mb-1 text-truncate">
-                                            <%= emails[i].isFEMailReply ? '📤' : '📥' %>
-                                            <%= emails[i].subject || '(No Subject)' %>
+                                            <%= email.isFEMailReply ? '📤' : '📥' %>
+                                            <%= email.subject || '(No Subject)' %>
                                         </h6>
                                         <small class="text-muted">
-                                            <%= new Date(emails[i].date).toLocaleDateString() %>
+                                            <%= new Date(email.date).toLocaleDateString() %>
                                         </small>
                                     </div>
                                     
                                     <p class="mb-1 small">
                                         <strong>
-                                            <%= emails[i].isFEMailReply ? 'To:' : 'From:' %>
+                                            <%= email.isFEMailReply ? 'To:' : 'From:' %>
                                         </strong>
                                         <span class="text-truncate d-inline-block" style="max-width: 200px;">
-                                            <%= emails[i].isFEMailReply ? emails[i].to.text : emails[i].from.text %>
+                                            <%= email.isFEMailReply ? email.to.text : email.from.text %>
                                         </span>
                                     </p>
                                     
                                     <small class="text-muted">
-                                        <%= new Date(emails[i].date).toLocaleTimeString() %>
+                                        <%= new Date(email.date).toLocaleTimeString() %>
                                     </small>
                                 </a>
-                            <% } %>
+                            <% }); %>
                         <% } %>
                     </div>
                 </div>
+
+                <!-- Pagination -->
+                <% if (totalPages > 1) { %>
+                    <div class="pagination-container">
+                        <nav aria-label="Email pagination">
+                            <ul class="pagination pagination-sm mb-0 justify-content-center">
+                                <li class="page-item <%= !hasPrevPage ? 'disabled' : '' %>">
+                                    <a class="page-link" href="<%- prefix %>/?<%= new URLSearchParams({search, page: currentPage - 1}).toString() %>">
+                                        ‹ Prev
+                                    </a>
+                                </li>
+                                
+                                <% 
+                                const startPage = Math.max(1, currentPage - 2);
+                                const endPage = Math.min(totalPages, currentPage + 2);
+                                %>
+                                
+                                <% if (startPage > 1) { %>
+                                    <li class="page-item">
+                                        <a class="page-link" href="<%- prefix %>/?<%= new URLSearchParams({search, page: 1}).toString() %>">1</a>
+                                    </li>
+                                    <% if (startPage > 2) { %>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <% } %>
+                                <% } %>
+                                
+                                <% for (let i = startPage; i <= endPage; i++) { %>
+                                    <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                                        <a class="page-link" href="<%- prefix %>/?<%= new URLSearchParams({search, page: i}).toString() %>">
+                                            <%= i %>
+                                        </a>
+                                    </li>
+                                <% } %>
+                                
+                                <% if (endPage < totalPages) { %>
+                                    <% if (endPage < totalPages - 1) { %>
+                                        <li class="page-item disabled"><span class="page-link">...</span></li>
+                                    <% } %>
+                                    <li class="page-item">
+                                        <a class="page-link" href="<%- prefix %>/?<%= new URLSearchParams({search, page: totalPages}).toString() %>">
+                                            <%= totalPages %>
+                                        </a>
+                                    </li>
+                                <% } %>
+                                
+                                <li class="page-item <%= !hasNextPage ? 'disabled' : '' %>">
+                                    <a class="page-link" href="<%- prefix %>/?<%= new URLSearchParams({search, page: currentPage + 1}).toString() %>">
+                                        Next ›
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                <% } %>
             </div>
 
             <!-- Email Content -->
             <div class="col-md-8 col-lg-9">
                 <div class="email-content p-4">
-                    <% if (!selectedEmail && selectedEmail !== "0") { %>
+                    <% if (!selectedEmail || selectedEmail === false) { %>
                         <div class="text-center text-muted py-5">
                             <h4>📧 Select an email to view</h4>
                             <p>Choose an email from the list to read its contents</p>
+                            <% if (search) { %>
+                                <small class="text-muted">Showing search results for "<%= search %>"</small>
+                            <% } %>
                         </div>
                     <% } else { %>
-                        <% const email = emails[selectedEmail]; %>
+                        <% 
+                        const email = selectedEmailData || (selectedEmail === "compose" ? {
+                            from: { text: "", value: [{ address: "" }] },
+                            to: { text: "" },
+                            cc: { text: "" },
+                            html: "",
+                            date: "",
+                            subject: "",
+                            isFEMailReply: false
+                        } : emails[selectedEmail]);
+                        %>
                         
-                        <!-- Email Header -->
-                        <div class="card mb-4">
-                            <div class="card-header">
-                                <div class="row align-items-center">
-                                    <div class="col">
-                                        <h4 class="card-title mb-1">
-                                            <%= email.subject || '(No Subject)' %>
-                                        </h4>
-                                        <div class="text-muted small">
-                                            <div><strong>From:</strong> <%= email.from.text %></div>
-                                            <div><strong>To:</strong> <%= email.to.text %></div>
-                                            <% if (email.cc && email.cc.text) { %>
-                                                <div><strong>CC:</strong> <%= email.cc.text %></div>
-                                            <% } %>
-                                            <div><strong>Date:</strong> <%= new Date(email.date).toLocaleString() %></div>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="btn-group" role="group">
-                                            <% if (!email.isFEMailReply) { %>
-                                                <a href="<%- prefix %>/email/<%= selectedEmail %>/reply" class="btn btn-primary btn-sm">
-                                                    ↩️ Reply
-                                                </a>
-                                            <% } %>
-                                            <button class="btn btn-outline-secondary btn-sm" 
-                                                    data-bs-toggle="collapse" 
-                                                    data-bs-target="#rawEmailCollapse">
-                                                🔍 Raw
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Email Content -->
-                        <div class="card mb-4">
-                            <div class="card-body p-0">
-                                <iframe src="<%- prefix %>/email/<%= selectedEmail %>/raw" 
-                                        class="email-iframe"
-                                        title="Email content"
-                                        loading="lazy">
-                                </iframe>
-                            </div>
-                        </div>
-
-                        <!-- Raw Email Collapse -->
-                        <div class="collapse mb-4" id="rawEmailCollapse">
-                            <div class="card">
+                        <% if (selectedEmail !== "compose") { %>
+                            <!-- Email Header -->
+                            <div class="card mb-4">
                                 <div class="card-header">
-                                    <h6 class="mb-0">Raw Email Data</h6>
-                                </div>
-                                <div class="card-body">
-                                    <textarea class="form-control" 
-                                              rows="10" 
-                                              readonly 
-                                              style="font-family: monospace; font-size: 0.875rem;"><%= email.raw || 'Raw data not available' %></textarea>
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <h4 class="card-title mb-1">
+                                                <%= email.subject || '(No Subject)' %>
+                                            </h4>
+                                            <div class="text-muted small">
+                                                <div><strong>From:</strong> <%= email.from.text %></div>
+                                                <div><strong>To:</strong> <%= email.to.text %></div>
+                                                <% if (email.cc && email.cc.text) { %>
+                                                    <div><strong>CC:</strong> <%= email.cc.text %></div>
+                                                <% } %>
+                                                <div><strong>Date:</strong> <%= new Date(email.date).toLocaleString() %></div>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="btn-group" role="group">
+                                                <% if (!email.isFEMailReply) { %>
+                                                    <a href="<%- prefix %>/email/<%= selectedEmail %>/reply<%= search || currentPage > 1 ? '?' + new URLSearchParams({search, page: currentPage}).toString() : '' %>" class="btn btn-primary btn-sm">
+                                                        ↩️ Reply
+                                                    </a>
+                                                <% } %>
+                                                <button class="btn btn-outline-secondary btn-sm" 
+                                                        data-bs-toggle="collapse" 
+                                                        data-bs-target="#rawEmailCollapse">
+                                                    🔍 Raw
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Reply Form -->
+                            <!-- Email Content -->
+                            <div class="card mb-4">
+                                <div class="card-body p-0">
+                                    <iframe src="<%- prefix %>/email/<%= selectedEmail %>/raw" 
+                                            class="email-iframe"
+                                            title="Email content"
+                                            loading="lazy">
+                                    </iframe>
+                                </div>
+                            </div>
+
+                            <!-- Raw Email Collapse -->
+                            <div class="collapse mb-4" id="rawEmailCollapse">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">Raw Email Data</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <textarea class="form-control" 
+                                                  rows="10" 
+                                                  readonly 
+                                                  style="font-family: monospace; font-size: 0.875rem;"><%= email.raw || 'Raw data not available' %></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        <% } %>
+
+                        <!-- Reply/Compose Form -->
                         <% if (reply) { %>
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="mb-0">
-                                        <%= selectedEmail === "0" ? '✉️ Compose New Email' : '↩️ Reply to Email' %>
+                                        <%= selectedEmail === "compose" ? '✉️ Compose New Email' : '↩️ Reply to Email' %>
                                     </h5>
                                 </div>
                                 <div class="card-body">
@@ -206,7 +333,7 @@
                                                    class="form-control" 
                                                    id="to" 
                                                    name="to" 
-                                                   value="<%= selectedEmail !== '0' && email.from.value && email.from.value[0] ? email.from.value[0].address : '' %>"
+                                                   value="<%= selectedEmail !== 'compose' && email.from.value && email.from.value[0] ? email.from.value[0].address : '' %>"
                                                    required
                                                    multiple>
                                             <div class="form-text">Separate multiple emails with commas</div>
@@ -227,7 +354,7 @@
                                                    class="form-control" 
                                                    id="subject" 
                                                    name="subject" 
-                                                   value="<%= selectedEmail !== '0' ? 'Re: ' + email.subject : '' %>"
+                                                   value="<%= selectedEmail !== 'compose' ? 'Re: ' + email.subject : '' %>"
                                                    required>
                                         </div>
 
@@ -248,7 +375,7 @@
                                                 <span class="spinner-border spinner-border-sm d-none" role="status"></span>
                                                 📤 Send Email
                                             </button>
-                                            <a href="<%- prefix %>/" class="btn btn-secondary">Cancel</a>
+                                            <a href="<%- prefix %>/<%= search || currentPage > 1 ? '?' + new URLSearchParams({search, page: currentPage}).toString() : '' %>" class="btn btn-secondary">Cancel</a>
                                         </div>
                                     </form>
                                 </div>
@@ -268,7 +395,7 @@
                     <small>© 2025 Sineware Cloud Services · Seshan Ravikumar</small>
                 </div>
                 <div class="col-auto">
-                    <small class="text-muted">FE Mail Server v2.0</small>
+                    <small class="text-muted">FE Mail Server v2.1</small>
                 </div>
             </div>
         </div>
@@ -276,10 +403,33 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Scroll to selected email in sidebar
+        document.addEventListener('DOMContentLoaded', function() {
+            <% if (selectedEmail !== false && selectedEmail !== undefined && selectedEmail !== "compose") { %>
+                const selectedEmailItem = document.querySelector('[data-email-id="<%= selectedEmail %>"]');
+                if (selectedEmailItem) {
+                    setTimeout(() => {
+                        selectedEmailItem.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                    }, 100);
+                }
+            <% } %>
+        });
+
         // Refresh functionality
         function refreshPage() {
             location.reload();
         }
+
+        // Search functionality
+        document.getElementById('searchInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.form.submit();
+            }
+        });
 
         // Form submission handling
         document.getElementById('composeForm')?.addEventListener('submit', async function(e) {
@@ -289,7 +439,6 @@
             const spinner = sendBtn.querySelector('.spinner-border');
             const form = e.target;
             
-            // Show loading state
             sendBtn.disabled = true;
             spinner.classList.remove('d-none');
             
@@ -303,20 +452,19 @@
                 
                 if (result.success) {
                     alert('✅ Email sent successfully!');
-                    window.location.href = '<%- prefix %>/';
+                    window.location.href = '<%- prefix %>/<%= search || currentPage > 1 ? "?" + new URLSearchParams({search, page: currentPage}).toString() : "" %>';
                 } else {
                     alert('❌ Failed to send email: ' + (result.error || 'Unknown error'));
                 }
             } catch (error) {
                 alert('❌ Network error: ' + error.message);
             } finally {
-                // Hide loading state
                 sendBtn.disabled = false;
                 spinner.classList.add('d-none');
             }
         });
 
-        // Email list keyboard navigation
+        // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey || e.metaKey) {
                 switch(e.key) {
@@ -326,25 +474,15 @@
                         break;
                     case 'n':
                         e.preventDefault();
-                        window.location.href = '<%- prefix %>/compose';
+                        window.location.href = '<%- prefix %>/compose<%= search ? "?search=" + encodeURIComponent(search) : "" %>';
+                        break;
+                    case 'f':
+                    case '/':
+                        e.preventDefault();
+                        document.getElementById('searchInput')?.focus();
                         break;
                 }
             }
-        });
-
-        document.addEventListener('DOMContentLoaded', function() {
-            <% if (selectedEmail !== false && selectedEmail !== undefined) { %>
-                const selectedEmailItem = document.querySelector('[data-email-id="<%= selectedEmail %>"]');
-                if (selectedEmailItem) {
-                    // Small delay to ensure the page is fully rendered
-                    setTimeout(() => {
-                        selectedEmailItem.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'center' 
-                        });
-                    }, 100);
-                }
-            <% } %>
         });
     </script>
 </body>
