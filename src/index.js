@@ -193,8 +193,8 @@ const routeHandlers = {
         }
         
         const { email } = emailData;
-        const content = email.html || `<pre>${email.textAsHtml || 'No content available'}</pre>`;
-        res.send(`<html><head><title>Email Content</title></head><body>${content}</body></html>`);
+        const content = email.html || `<pre>${email.textAsHtml || email.text || 'No content available'}</pre>`;
+        res.send(`<!DOCTYPE html><html><head><title>Email Content</title></head><body>${content}</body></html>`);
     },
 
     handleEmailSink: async (req, res) => {

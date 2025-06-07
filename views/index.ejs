@@ -59,7 +59,7 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="<%- prefix %>/">
-                📧 Sineware Mail
+                📧 Sineware FE Mail Server
             </a>
             
             <div class="d-flex gap-2">
@@ -330,6 +330,21 @@
                         break;
                 }
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            <% if (selectedEmail !== false && selectedEmail !== undefined) { %>
+                const selectedEmailItem = document.querySelector('[data-email-id="<%= selectedEmail %>"]');
+                if (selectedEmailItem) {
+                    // Small delay to ensure the page is fully rendered
+                    setTimeout(() => {
+                        selectedEmailItem.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center' 
+                        });
+                    }, 100);
+                }
+            <% } %>
         });
     </script>
 </body>
